@@ -1,4 +1,5 @@
 {
   "greeting": "Hello, World!",
-  "farewell": "Goodbye, World!"
+  "farewell": "Goodbye, World!",
+  "new_message": "This is a new message."
 }
