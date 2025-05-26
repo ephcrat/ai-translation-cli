@@ -91,16 +91,13 @@ async function main() {
         }
       }
 
-      const prompt = constructPrompt(
-        diffContent,
-        JSON.stringify(currentLocaleJson),
-        localeCode,
-        localeCode
-      );
+      const prompt = constructPrompt(diffContent, localeCode, localeCode);
 
       console.log(`Sending request to Gemini API for ${localeCode}...`);
-      const geminiResponseString = await getTranslationsFromGemini(prompt);
-
+      const geminiResponseString = await getTranslationsFromGemini(
+        prompt,
+        targetFilePath
+      );
       console.log(`Received response from Gemini for ${localeCode}.`);
 
       let updatedTranslations;
