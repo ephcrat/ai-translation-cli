@@ -6,13 +6,14 @@ import {
   readTextFile,
   listDirectoryContents,
 } from "./fileUtils";
-import { constructPrompt, getTranslationsFromGemini } from "./geminiService";
+import { constructTranslationPrompt } from "./prompt";
+import { createProvider } from "./providerFactory";
 
 const program = new Command();
 
 program
   .name("ai-translate")
-  .description("CLI tool to translate i18n JSON files using Gemini API")
+  .description("CLI tool to translate i18n JSON files using LLM providers")
   .version("0.0.1");
 
 program
@@ -33,6 +34,16 @@ program
     "--locales-path <path>",
     "Path to the directory containing locale JSON files (defaults to ./locales)",
     "./locales" // Default value
+  )
+  .option("--provider <name>", 'LLM provider to use (e.g., "gemini")', "gemini")
+  .option(
+    "--model <name>",
+    "Optional model identifier to use for the selected provider"
+  )
+  .option(
+    "--temperature <number>",
+    "Optional temperature to use for the selected provider",
+    (value) => parseFloat(value)
   );
 
 program.parse(process.argv);
@@ -74,6 +85,11 @@ async function main() {
       console.log(`Found target languages: ${targetLocaleCodes.join(", ")}`);
     }
 
+    const provider = createProvider(options.provider, {
+      model: options.model,
+      temperature: options.temperature,
+    });
+
     for (const localeCode of targetLocaleCodes) {
       console.log(`\n--- Starting translation for ${localeCode} ---`);
       const targetFilePath = path.join(localesPath, `${localeCode}.json`);
@@ -91,23 +107,31 @@ async function main() {
         }
       }
 
-      const prompt = constructPrompt(diffContent, localeCode, localeCode);
+      const prompt = constructTranslationPrompt(
+        diffContent,
+        localeCode,
+        localeCode
+      );
 
-      console.log(`Sending request to Gemini API for ${localeCode}...`);
-      const geminiResponseString = await getTranslationsFromGemini(
+      console.log(
+        `Sending request to ${provider.name()} provider for ${localeCode}...`
+      );
+      const llmResponseString = await provider.translate(
         prompt,
         targetFilePath
       );
-      console.log(`Received response from Gemini for ${localeCode}.`);
+      console.log(
+        `Received response from ${provider.name()} for ${localeCode}.`
+      );
 
       let updatedTranslations;
       try {
-        updatedTranslations = JSON.parse(geminiResponseString);
+        updatedTranslations = JSON.parse(llmResponseString);
       } catch (e) {
         console.error(
-          `Error: Gemini API response for ${localeCode} was not valid JSON. Skipping update for this language.`
+          `Error: Provider response for ${localeCode} was not valid JSON. Skipping update for this language.`
         );
-        console.error(`Received: ${geminiResponseString}`);
+        console.error(`Received: ${llmResponseString}`);
         console.error(e);
         continue;
       }
