@@ -49,6 +49,34 @@ export async function writeJsonFile(
 }
 
 /**
+ * Performs a deep, non-destructive merge of a source (delta) object into a target object.
+ * - For objects: recursively merges properties.
+ * - For arrays and primitive values: source overwrites target.
+ * Returns a new object; does not mutate inputs.
+ */
+export function deepMergeJson<
+  T extends Record<string, any>,
+  U extends Record<string, any>
+>(target: T, source: U): T & U {
+  const isObject = (val: any) =>
+    val && typeof val === "object" && !Array.isArray(val);
+
+  const result: any = Array.isArray(target)
+    ? [...(target as any)]
+    : { ...(target as any) };
+  for (const key of Object.keys(source)) {
+    const sourceValue = (source as any)[key];
+    const targetValue = (result as any)[key];
+    if (isObject(sourceValue) && isObject(targetValue)) {
+      (result as any)[key] = deepMergeJson(targetValue, sourceValue);
+    } else {
+      (result as any)[key] = sourceValue;
+    }
+  }
+  return result as T & U;
+}
+
+/**
  * Reads the content of a text file.
  * @param filePath The path to the text file.
  * @returns A promise that resolves to the file content as a string.

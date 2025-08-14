@@ -101,7 +101,7 @@ export class OpenAIProvider implements LLMProvider {
     const input =
       prompt +
       (currentLocaleJsonContent
-        ? `\n\nContext JSON file contents (do not echo this back except as part of the final complete JSON output):\n${currentLocaleJsonContent}`
+        ? `\n\nContext JSON file contents (do not echo this back except as part of the final JSON output):\n${currentLocaleJsonContent}`
         : "");
 
     const requestBody: any = {

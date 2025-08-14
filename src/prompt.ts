@@ -42,3 +42,40 @@ ${gitDiff}
 `;
   return prompt;
 }
+
+export function constructDeltaPrompt(
+  gitDiff: string,
+  targetLocaleCode: string,
+  targetLanguageName: string
+): string {
+  const prompt = `
+You're an expert translator for mobile and web applications, you know the best practices of internationalization and localization.
+
+You will be provided with two pieces of information:
+1. A git diff of an English JSON locale file, showing new or updated text.
+2. The complete current JSON content for the target language (${targetLanguageName} - ${targetLocaleCode}.json) as a separate file.
+
+Your task is to translate ONLY the new and updated English text from the git diff into ${targetLanguageName} (${targetLocaleCode}) and return a JSON object that contains ONLY the keys that were added or modified and their ${targetLanguageName} translations. Do not return the entire file.
+
+Important context: The ${targetLanguageName} JSON file is provided to preserve style, tone, and terminology. Do not re-translate keys that are not in the diff.
+
+Git Diff of en.json (source of new/updated English text):
+\`\`\`diff
+${gitDiff}
+\`\`\`
+
+CRITICAL Instructions - Follow These Precisely:
+1. Identify the keys added or modified by the diff. Ignore deletions.
+2. Translate ONLY those keys into ${targetLanguageName}.
+3. Do NOT include any keys that are unchanged or deleted.
+4. Preserve placeholders (e.g., {{variable}} or <tag>) exactly as they appear in English.
+5. Return a valid JSON object containing ONLY the translated key-value pairs that correspond to additions or modifications.
+6. Do NOT include any extra text, markdown, or explanations.
+
+JSON Output Example (delta only):
+{
+  "new.key.or.modified": "translated value"
+}
+`;
+  return prompt;
+}

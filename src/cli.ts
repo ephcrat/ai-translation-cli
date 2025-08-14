@@ -6,8 +6,9 @@ import {
   readTextFile,
   listDirectoryContents,
 } from "./fileUtils";
-import { constructTranslationPrompt } from "./prompt";
+import { constructTranslationPrompt, constructDeltaPrompt } from "./prompt";
 import { createProvider } from "./providerFactory";
+import { deepMergeJson } from "./fileUtils";
 
 const program = new Command();
 
@@ -45,6 +46,12 @@ program
     "Optional temperature to use for the selected provider",
     (value) => parseFloat(value)
   );
+
+program.option(
+  "--mode <mode>",
+  'Output mode: "full" (default) returns the complete updated JSON; "delta" returns only additions/updates to be merged',
+  "full"
+);
 
 program.parse(process.argv);
 
@@ -107,11 +114,10 @@ async function main() {
         }
       }
 
-      const prompt = constructTranslationPrompt(
-        diffContent,
-        localeCode,
-        localeCode
-      );
+      const isDeltaMode = (options.mode ?? "full") === "delta";
+      const prompt = isDeltaMode
+        ? constructDeltaPrompt(diffContent, localeCode, localeCode)
+        : constructTranslationPrompt(diffContent, localeCode, localeCode);
 
       console.log(
         `Sending request to ${provider.name()} provider for ${localeCode}...`
@@ -136,7 +142,15 @@ async function main() {
         continue;
       }
 
-      await writeJsonFile(targetFilePath, updatedTranslations);
+      if (isDeltaMode) {
+        const merged = deepMergeJson(
+          currentLocaleJson as any,
+          updatedTranslations as any
+        );
+        await writeJsonFile(targetFilePath, merged);
+      } else {
+        await writeJsonFile(targetFilePath, updatedTranslations);
+      }
       console.log(`Successfully updated ${targetFilePath}`);
     }
 
